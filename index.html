@@ -1,0 +1,3425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <title></title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #f4f0dc;
+      font-family:
+        "Microsoft YaHei",
+        "PingFang SC",
+        "Noto Serif SC",
+        serif;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: default;
+    }
+
+    /* 顶部标题 */
+
+    .title {
+      position: absolute;
+      top: 34px;
+      left: 42px;
+      z-index: 20;
+      color: #39463b;
+      pointer-events: none;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 58px);
+      font-weight: 400;
+      letter-spacing: 10px;
+      text-shadow: 0 1px 12px rgba(255, 255, 255, 0.75);
+    }
+
+    .title p {
+      margin: 13px 0 0;
+      color: #687364;
+      font-size: 13px;
+      letter-spacing: 4px;
+      text-shadow: 0 1px 10px rgba(255, 255, 255, 0.75);
+    }
+
+    /* 底部提示 */
+
+    .tip {
+      position: absolute;
+      right: 30px;
+      bottom: 28px;
+      z-index: 20;
+      padding: 11px 18px;
+      border-radius: 24px;
+      color: #435044;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 12px;
+      letter-spacing: 1px;
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+    }
+
+    /* 音乐开关 */
+
+    .music-button {
+      position: absolute;
+      top: 34px;
+      right: 30px;
+      z-index: 30;
+      padding: 10px 18px;
+      border: 1px solid rgba(63, 79, 65, 0.3);
+      border-radius: 24px;
+      color: #3d4c40;
+      background: rgba(255, 255, 255, 0.72);
+      font-family: inherit;
+      font-size: 13px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: 0.25s ease;
+    }
+
+    .music-button:hover {
+      background: rgba(255, 255, 255, 0.95);
+      transform: translateY(-2px);
+    }
+
+    /* 动态开关（位于音乐按钮下方） */
+
+    .effects-button {
+      top: 84px;
+    }
+
+    /* 返回按钮 */
+
+    .back-button {
+      position: absolute;
+      left: 40px;
+      bottom: 28px;
+      z-index: 30;
+      display: none;
+      padding: 11px 21px;
+      border: 1px solid rgba(63, 79, 65, 0.35);
+      border-radius: 24px;
+      color: #3d4c40;
+      background: rgba(255, 255, 255, 0.8);
+      font-family: inherit;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: 0.25s ease;
+    }
+
+    .back-button.show {
+      display: block;
+    }
+
+    .back-button:hover {
+      background: rgba(255, 255, 255, 0.98);
+      transform: translateY(-2px);
+    }
+
+    /* 信息面板 */
+
+    .info-panel {
+      position: absolute;
+      top: 50%;
+      right: 34px;
+      z-index: 40;
+      width: 340px;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 25px;
+      color: #37453a;
+      background: rgba(250, 247, 229, 0.95);
+      border: 1px solid rgba(76, 93, 75, 0.22);
+      box-shadow: 0 18px 50px rgba(55, 65, 49, 0.18);
+      backdrop-filter: blur(14px);
+      transform: translateY(-50%) translateX(35px);
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.35s ease;
+    }
+
+    .info-panel.show {
+      transform: translateY(-50%) translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .info-panel h2 {
+      margin: 0 0 13px;
+      font-size: 21px;
+      font-weight: 400;
+      letter-spacing: 4px;
+    }
+
+    .info-panel p {
+      margin: 0;
+      color: #687466;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    .info-panel img {
+      width: 100%;
+      border-radius: 4px;
+      margin-bottom: 13px;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      border: 0;
+      color: #59665a;
+      background: transparent;
+      font-size: 23px;
+      cursor: pointer;
+    }
+
+    /*
+     * 鼠标名称提示。
+     * 用 transform 定位（只触发合成，不触发重排）。
+     */
+
+    .cursor-tip {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 25;
+      display: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      color: #37453a;
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 12px;
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    .cursor-tip.show {
+      display: block;
+    }
+
+    /* 进门渐白转场 */
+
+    .fade-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      background: #f4f0dc;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.45s ease;
+    }
+
+    .fade-overlay.show {
+      opacity: 1;
+    }
+
+    /* 加载层 */
+
+    .loading {
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      color: #526052;
+      background: #f4f0dc;
+      font-size: 14px;
+      letter-spacing: 5px;
+      transition: opacity 0.8s ease;
+    }
+
+    .loading.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 错误信息 */
+
+    .error-message {
+      position: absolute;
+      inset: 0;
+      z-index: 70;
+      display: none;
+      place-items: center;
+      padding: 30px;
+      color: #625c4e;
+      background: #f4f0dc;
+      text-align: center;
+      line-height: 2;
+    }
+
+    .error-message.show {
+      display: grid;
+    }
+
+    @media (max-width: 700px) {
+      .title {
+        top: 22px;
+        left: 22px;
+      }
+
+      .title h1 {
+        font-size: 30px;
+        letter-spacing: 6px;
+      }
+
+      .title p {
+        font-size: 11px;
+        letter-spacing: 2px;
+      }
+
+      .tip {
+        right: 16px;
+        bottom: 18px;
+        max-width: 235px;
+        font-size: 11px;
+      }
+
+      .back-button {
+        left: 18px;
+        bottom: 18px;
+      }
+
+      .music-button {
+        top: 22px;
+        right: 16px;
+        padding: 8px 14px;
+      }
+
+      .effects-button {
+        top: 62px;
+      }
+
+      .info-panel {
+        top: auto;
+        right: 16px;
+        bottom: 72px;
+        left: 16px;
+        width: auto;
+        transform: translateY(20px);
+      }
+
+      .info-panel.show {
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./three.module.js"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div id="app">
+    <div class="loading" id="loading">
+      正在展开东方园林
+    </div>
+
+    <div class="error-message" id="errorMessage">
+      <div>
+        <h2>图片加载失败</h2>
+        <p>
+          请确认图片文件位于：<br />
+          <strong>assets/garden.jpg</strong>
+        </p>
+      </div>
+    </div>
+
+    <button class="music-button" id="musicButton">
+      音乐 关
+    </button>
+
+    <button class="music-button effects-button" id="effectsButton">
+      动态 开
+    </button>
+
+    <button class="back-button" id="backButton">
+      返回园林总览
+    </button>
+
+    <div class="cursor-tip" id="cursorTip"></div>
+
+    <div class="fade-overlay" id="fadeOverlay"></div>
+
+    <div class="info-panel" id="infoPanel">
+      <button class="close-button" id="closeButton">
+        ×
+      </button>
+
+      <div id="infoContent"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "three";
+
+    // =====================================================
+    // 图片尺寸与显示比例
+    // =====================================================
+
+    /*
+     * 当前图片为横版 16:9，尺寸约为 1366 × 768。
+     *
+     * 如果以后替换成真正的 4K 图片 3840 × 2160，
+     * 这里仍然保持 16:9 即可。
+     */
+    const IMAGE_WIDTH = 1366;
+    const IMAGE_HEIGHT = 768;
+
+    const IMAGE_ASPECT =
+      IMAGE_WIDTH / IMAGE_HEIGHT;
+
+    /*
+     * Three.js 世界尺寸。
+     * 保持 16:9，避免图片变形。
+     */
+    const WORLD_WIDTH = 16;
+    const WORLD_HEIGHT =
+      WORLD_WIDTH / IMAGE_ASPECT;
+
+    const BACKGROUND_IMAGE =
+      "./assets/garden.jpg";
+
+    /*
+     * 西楼楼阁内部照片（书房，横幅 2278×1280），
+     * 从西楼楼阁进入时的内部画面。
+     */
+    const INTERIOR_IMAGE =
+      "./assets/interior_west.jpg";
+
+    /*
+     * 中心水阁内部照片（绣房，横幅 2278×1280），
+     * 从中心水阁进入时的内部画面。
+     */
+    const INTERIOR_IMAGE2 =
+      "./assets/interior_main.jpg";
+
+    /*
+     * 东院楼阁内部照片（绣坊，横幅 2278×1280），
+     * 从东院进入时的内部画面。
+     */
+    const INTERIOR_IMAGE3 =
+      "./assets/interior_center.jpg";
+
+    /*
+     * 可选的透明门扇图片。
+     * 没有该文件也不影响主页面运行。
+     */
+    const DOOR_IMAGE =
+      "./assets/center-door.png";
+
+    /*
+     * 像素比上限 2：
+     * 4K / 高分屏不再按 dpr=3 全分辨率绘制，
+     * 填充率压力大幅下降，肉眼几乎无差别。
+     */
+    const MAX_PIXEL_RATIO = 2;
+
+    // =====================================================
+    // DOM 引用缓存（避免热路径反复 querySelector）
+    // =====================================================
+
+    const dom = {
+      loading:
+        document.querySelector("#loading"),
+      errorMessage:
+        document.querySelector("#errorMessage"),
+      cursorTip:
+        document.querySelector("#cursorTip"),
+      infoPanel:
+        document.querySelector("#infoPanel"),
+      infoContent:
+        document.querySelector("#infoContent"),
+      backButton:
+        document.querySelector("#backButton"),
+      musicButton:
+        document.querySelector("#musicButton"),
+      effectsButton:
+        document.querySelector("#effectsButton"),
+      fadeOverlay:
+        document.querySelector("#fadeOverlay")
+    };
+
+    // =====================================================
+    // 场景、相机、渲染器
+    // =====================================================
+
+    const scene = new THREE.Scene();
+
+    scene.background =
+      new THREE.Color("#f4f0dc");
+
+    /*
+     * 使用正交相机：
+     * 适合图片背景，不会改变图片透视关系。
+     */
+    const camera =
+      new THREE.OrthographicCamera(
+        -WORLD_WIDTH / 2,
+        WORLD_WIDTH / 2,
+        WORLD_HEIGHT / 2,
+        -WORLD_HEIGHT / 2,
+        0.1,
+        100
+      );
+
+    camera.position.set(
+      0,
+      0,
+      10
+    );
+
+    camera.zoom = 1;
+    camera.updateProjectionMatrix();
+
+    /*
+     * 高分屏（dpr >= 1.5）关闭 MSAA 抗锯齿：
+     * 像素密度本身足够，抗锯齿开销可以省掉。
+     */
+    const deviceDpr =
+      window.devicePixelRatio || 1;
+
+    const renderer =
+      new THREE.WebGLRenderer({
+        antialias: deviceDpr < 1.5,
+        alpha: true,
+        powerPreference: "high-performance"
+      });
+
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+    renderer.toneMapping =
+      THREE.NoToneMapping;
+
+    document
+      .querySelector("#app")
+      .appendChild(renderer.domElement);
+
+    const canvas =
+      renderer.domElement;
+
+    scene.add(
+      new THREE.AmbientLight(
+        "#ffffff",
+        1.5
+      )
+    );
+
+    // =====================================================
+    // 按需渲染系统
+    // =====================================================
+
+    /*
+     * 页面绝大部分时间是静止的，
+     * 只有镜头推进、门动画、场景切换、纹理加载、
+     * 窗口缩放时才需要重新绘制。
+     * 静止时完全跳过 renderer.render，
+     * GPU 占用接近 0，风扇不转、移动端不发烫。
+     */
+    let needsRender = true;
+
+    function invalidate() {
+      needsRender = true;
+    }
+
+    // =====================================================
+    // 缓动函数（帧率无关，全部基于时间戳）
+    // =====================================================
+
+    const lerp =
+      THREE.MathUtils.lerp;
+
+    function easeInOutCubic(t) {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    // =====================================================
+    // 背景图片
+    // =====================================================
+
+    const textureLoader =
+      new THREE.TextureLoader();
+
+    const backgroundTexture =
+      textureLoader.load(
+        BACKGROUND_IMAGE,
+
+        () => {
+          /*
+           * 适当提高纹理各向异性。
+           */
+          backgroundTexture.anisotropy =
+            renderer.capabilities.getMaxAnisotropy();
+
+          dom.loading.classList.add("hide");
+
+          invalidate();
+        },
+
+        undefined,
+
+        () => {
+          dom.loading.classList.add("hide");
+          dom.errorMessage.classList.add("show");
+        }
+      );
+
+    backgroundTexture.colorSpace =
+      THREE.SRGBColorSpace;
+
+    backgroundTexture.minFilter =
+      THREE.LinearFilter;
+
+    backgroundTexture.magFilter =
+      THREE.LinearFilter;
+
+    /*
+     * 背景图基本只被放大观察，不会被缩小，
+     * 关闭 mipmap 生成省去一整条 mip 链的
+     * 生成与上传时间。
+     */
+    backgroundTexture.generateMipmaps =
+      false;
+
+    /*
+     * 室内纹理独立加载，不阻塞入口 loading：
+     * 点击进门通常远晚于纹理就绪。
+     */
+    const interiorTexture =
+      textureLoader.load(
+        INTERIOR_IMAGE,
+
+        () => {
+          interiorTexture.anisotropy =
+            renderer.capabilities.getMaxAnisotropy();
+
+          invalidate();
+        }
+      );
+
+    interiorTexture.colorSpace =
+      THREE.SRGBColorSpace;
+
+    interiorTexture.minFilter =
+      THREE.LinearFilter;
+
+    interiorTexture.magFilter =
+      THREE.LinearFilter;
+
+    interiorTexture.generateMipmaps =
+      false;
+
+    const interiorTexture2 =
+      textureLoader.load(
+        INTERIOR_IMAGE2,
+
+        () => {
+          interiorTexture2.anisotropy =
+            renderer.capabilities.getMaxAnisotropy();
+
+          invalidate();
+        }
+      );
+
+    interiorTexture2.colorSpace =
+      THREE.SRGBColorSpace;
+
+    interiorTexture2.minFilter =
+      THREE.LinearFilter;
+
+    interiorTexture2.magFilter =
+      THREE.LinearFilter;
+
+    interiorTexture2.generateMipmaps =
+      false;
+
+    const interiorTexture3 =
+      textureLoader.load(
+        INTERIOR_IMAGE3,
+
+        () => {
+          interiorTexture3.anisotropy =
+            renderer.capabilities.getMaxAnisotropy();
+
+          invalidate();
+        }
+      );
+
+    interiorTexture3.colorSpace =
+      THREE.SRGBColorSpace;
+
+    interiorTexture3.minFilter =
+      THREE.LinearFilter;
+
+    interiorTexture3.magFilter =
+      THREE.LinearFilter;
+
+    interiorTexture3.generateMipmaps =
+      false;
+
+    const backgroundPlane =
+      new THREE.Mesh(
+        new THREE.PlaneGeometry(
+          WORLD_WIDTH,
+          WORLD_HEIGHT
+        ),
+        new THREE.MeshBasicMaterial({
+          map: backgroundTexture
+        })
+      );
+
+    backgroundPlane.position.set(
+      0,
+      0,
+      0
+    );
+
+    scene.add(backgroundPlane);
+
+    // =====================================================
+    // 坐标转换
+    // =====================================================
+
+    /*
+     * 将图片像素坐标转换为 Three.js 坐标。
+     *
+     * 图片左上角：0, 0
+     * 图片右下角：1366, 768
+     */
+    function imageToWorld(
+      pixelX,
+      pixelY
+    ) {
+      return {
+        x:
+          (pixelX / IMAGE_WIDTH - 0.5) *
+          WORLD_WIDTH,
+
+        y:
+          (0.5 - pixelY / IMAGE_HEIGHT) *
+          WORLD_HEIGHT
+      };
+    }
+
+    // =====================================================
+    // 创建透明点击区域
+    // =====================================================
+
+    function createHotspot({
+      x,
+      y,
+      width,
+      height,
+      title,
+      description,
+      type = "detail",
+      focusZoom,
+      interiorKey,
+      layer
+    }) {
+      const point =
+        imageToWorld(x, y);
+
+      const worldWidth =
+        width / IMAGE_WIDTH *
+        WORLD_WIDTH;
+
+      const worldHeight =
+        height / IMAGE_HEIGHT *
+        WORLD_HEIGHT;
+
+      /*
+       * 完全透明的点击面。
+       * 不再创建发光边框。
+       */
+      const material =
+        new THREE.MeshBasicMaterial({
+          transparent: true,
+          opacity: 0.001,
+          depthTest: false
+        });
+
+      const hotspot =
+        new THREE.Mesh(
+          new THREE.PlaneGeometry(
+            worldWidth,
+            worldHeight
+          ),
+          material
+        );
+
+      hotspot.position.set(
+        point.x,
+        point.y,
+        layer !== undefined
+          ? layer
+          : type === "door"
+            ? 0.8
+            : 0.6
+      );
+
+      hotspot.userData = {
+        title,
+        description,
+        type,
+        isHotspot: true,
+        focusZoom,
+        interiorKey
+      };
+
+      scene.add(hotspot);
+
+      return hotspot;
+    }
+
+    // =====================================================
+    // 建筑点击区域
+    // =====================================================
+
+    /*
+     * 左侧楼阁
+     */
+    const leftBuilding =
+      createHotspot({
+        x: 245,
+        y: 160,
+        width: 310,
+        height: 270,
+        type: "building",
+        interiorKey: "west",
+        title: "西楼楼阁",
+        description:
+          "临水而建的两层楼阁，屋檐舒展，木构窗棂保留着东方建筑的秩序感。点击可进入楼阁内部的书房。"
+      });
+
+    /*
+     * 中央塔楼
+     */
+    const centerBuilding =
+      createHotspot({
+        x: 690,
+        y: 275,
+        width: 310,
+        height: 365,
+        type: "building",
+        interiorKey: "main",
+        title: "中心水阁",
+        description:
+          "园林中心的多层水阁，是整幅园林构图中的视觉核心。"
+      });
+
+    /*
+     * 右侧楼阁
+     */
+    const rightBuilding =
+      createHotspot({
+        x: 1095,
+        y: 390,
+        width: 330,
+        height: 320,
+        type: "building",
+        interiorKey: "east",
+        title: "东院楼阁",
+        description:
+          "东侧楼阁围绕水面展开，与曲桥、池岸和松竹共同构成丰富层次。"
+      });
+
+    // =====================================================
+    // 大门点击区域
+    // =====================================================
+
+    const leftDoor =
+      createHotspot({
+        x: 250,
+        y: 320,
+        width: 75,
+        height: 92,
+        type: "door",
+        interiorKey: "west",
+        title: "进入西楼",
+        description:
+          "点击大门进入西楼楼阁内部的书房。"
+      });
+
+    const centerDoor =
+      createHotspot({
+        x: 690,
+        y: 375,
+        width: 82,
+        height: 105,
+        type: "door",
+        interiorKey: "main",
+        title: "进入中心水阁",
+        description:
+          "点击中央大门进入中心水阁内部空间。"
+      });
+
+    const rightDoor =
+      createHotspot({
+        x: 1080,
+        y: 500,
+        width: 82,
+        height: 100,
+        type: "door",
+        interiorKey: "east",
+        title: "进入东院",
+        description:
+          "点击大门进入东院内部空间。"
+      });
+
+    // =====================================================
+    // 园林细节点击区域
+    // =====================================================
+
+    const pond =
+      createHotspot({
+        x: 690,
+        y: 520,
+        width: 450,
+        height: 220,
+        type: "detail",
+        title: "曲水池",
+        description:
+          "园林以水为脉，曲桥、亭台和楼阁倒映于池面，形成开放的视觉中心。"
+      });
+
+    const island =
+      createHotspot({
+        x: 690,
+        y: 535,
+        width: 150,
+        height: 90,
+        type: "detail",
+        title: "水心亭",
+        description:
+          "池中的水心亭是园林的观景节点，可以欣赏周围的楼阁、水面和桥梁。",
+        focusZoom: 2.6,
+        layer: 0.7
+      });
+
+    const bamboo =
+      createHotspot({
+        x: 1190,
+        y: 210,
+        width: 170,
+        height: 260,
+        type: "detail",
+        title: "临墙修竹",
+        description:
+          "竹林沿墙生长，为园林增加了清雅、幽静的气质。"
+      });
+
+    const gardenHotspots = [
+      leftBuilding,
+      centerBuilding,
+      rightBuilding,
+      leftDoor,
+      centerDoor,
+      rightDoor,
+      pond,
+      island,
+      bamboo
+    ];
+
+    // =====================================================
+    // 定轴门扇
+    // =====================================================
+
+    const doorGroups = [];
+
+    /*
+     * 这个功能需要透明门扇图片：
+     * assets/center-door.png
+     *
+     * 如果文件不存在，页面仍然正常运行，
+     * 只是不显示额外门扇。
+     */
+    function createAnimatedDoor({
+      doorHotspot,
+      imagePath
+    }) {
+      const doorWidth =
+        doorHotspot.geometry.parameters.width;
+
+      const doorHeight =
+        doorHotspot.geometry.parameters.height;
+
+      const doorGroup =
+        new THREE.Group();
+
+      /*
+       * 门轴位于门扇左侧。
+       */
+      doorGroup.position.set(
+        doorHotspot.position.x -
+          doorWidth / 2,
+        doorHotspot.position.y,
+        1
+      );
+
+      const doorMaterial =
+        new THREE.MeshBasicMaterial({
+          transparent: true,
+          opacity: 0,
+          side: THREE.DoubleSide,
+          depthTest: false
+        });
+
+      const doorMesh =
+        new THREE.Mesh(
+          new THREE.PlaneGeometry(
+            doorWidth,
+            doorHeight
+          ),
+          doorMaterial
+        );
+
+      /*
+       * 门扇相对门轴向右偏移。
+       */
+      doorMesh.position.set(
+        doorWidth / 2,
+        0,
+        0
+      );
+
+      doorGroup.add(doorMesh);
+
+      textureLoader.load(
+        imagePath,
+        (texture) => {
+          texture.colorSpace =
+            THREE.SRGBColorSpace;
+
+          texture.generateMipmaps =
+            false;
+
+          doorMaterial.map = texture;
+          doorMaterial.opacity = 1;
+          doorMaterial.needsUpdate = true;
+
+          invalidate();
+        },
+        undefined,
+        () => {
+          /*
+           * 没有透明门扇图片时不显示占位门。
+           */
+          doorMaterial.opacity = 0;
+          doorMaterial.needsUpdate = true;
+        }
+      );
+
+      scene.add(doorGroup);
+      doorGroups.push(doorGroup);
+
+      return doorGroup;
+    }
+
+    /*
+     * 只为中央塔楼创建独立门扇。
+     */
+    createAnimatedDoor({
+      doorHotspot: centerDoor,
+      imagePath: DOOR_IMAGE
+    });
+
+    // =====================================================
+    // 内部场景
+    // =====================================================
+
+    const interiorScene =
+      new THREE.Group();
+
+    interiorScene.visible = false;
+    interiorScene.position.z = 1.5;
+
+    scene.add(interiorScene);
+
+    /*
+     * 室内画面（进入时按入口切换，共用一个室内场景组）：
+     *   west —— 西楼楼阁：assets/interior_west.jpg
+     *          （横幅 2278×1280 书房），整幅按原比例
+     *          contain 适配视口，完整可见不裁切。
+     *   main —— 中心水阁：assets/interior_main.jpg
+     *          （横幅 2278×1280 绣房），同样整幅 contain 适配。
+     *   east —— 东院楼阁：assets/interior_center.jpg
+     *          （横幅 2278×1280 绣坊），同样整幅 contain 适配。
+     * 各热区坐标即所在照片的像素参考系。
+     */
+    const WEST_IMAGE_W = 2278;
+    const WEST_IMAGE_H = 1280;
+
+    const MAIN_IMAGE_W = 2278;
+    const MAIN_IMAGE_H = 1280;
+
+    const EAST_IMAGE_W = 2278;
+    const EAST_IMAGE_H = 1280;
+
+    /*
+     * 与园林热区相同的透明点击面，
+     * 坐标为所在照片的像素位置。
+     */
+    function createInteriorHotspot(
+      set,
+      {
+        x,
+        y,
+        width,
+        height,
+        title,
+        description,
+        image
+      }
+    ) {
+      const hotspot =
+        new THREE.Mesh(
+          new THREE.PlaneGeometry(
+            width / set.imgW *
+              set.planeW,
+            height / set.imgH *
+              set.planeH
+          ),
+          new THREE.MeshBasicMaterial({
+            transparent: true,
+            opacity: 0.001,
+            depthTest: false
+          })
+        );
+
+      hotspot.position.set(
+        -set.planeW / 2 +
+          x / set.imgW *
+            set.planeW,
+        set.centerY +
+          set.planeH / 2 -
+          y / set.imgH *
+            set.planeH,
+        0.15
+      );
+
+      hotspot.userData = {
+        type: "interior",
+        title,
+        description,
+        image
+      };
+
+      hotspot.visible = false;
+
+      interiorScene.add(hotspot);
+
+      set.hotspots.push(hotspot);
+
+      return hotspot;
+    }
+
+    function createInteriorSet(
+      texture,
+      hotspotDefs,
+      fit = false,
+      imgW = WEST_IMAGE_W,
+      imgH = WEST_IMAGE_H
+    ) {
+      const set = {
+        bg: null,
+        hotspots: [],
+        defs: hotspotDefs,
+        imgW,
+        imgH
+      };
+
+      /*
+       * fit 为 true 时整幅 contain 适配：
+       * 按载入时视口比例，把照片完整
+       * 装进 1.15 倍变焦视口（原比例，
+       * 不裁切不变形）；否则按完整宽度
+       * 铺设并垂直取景茶席带（茶室）。
+       */
+      const visH =
+        WORLD_HEIGHT / 1.15;
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const visW =
+        WORLD_HEIGHT *
+        (vw > 0 && vh > 0
+          ? vw / vh
+          : IMAGE_ASPECT) /
+        1.15;
+
+      const imgAspect = imgW / imgH;
+
+      if (fit) {
+        if (imgAspect > visW / visH) {
+          set.planeW = visW;
+          set.planeH = visW / imgAspect;
+        } else {
+          set.planeH = visH;
+          set.planeW = visH * imgAspect;
+        }
+
+        set.centerY = 0;
+      } else {
+        set.planeW = WORLD_WIDTH;
+        set.planeH =
+          WORLD_WIDTH * (imgH / imgW);
+        set.centerY =
+          0.38 * set.planeH -
+          set.planeH / 2 +
+          WORLD_HEIGHT / 2 / 1.15;
+      }
+
+      set.bg =
+        new THREE.Mesh(
+          new THREE.PlaneGeometry(
+            set.planeW,
+            set.planeH
+          ),
+          new THREE.MeshBasicMaterial({
+            map: texture
+          })
+        );
+
+      set.bg.position.set(
+        0,
+        set.centerY,
+        0
+      );
+
+      set.bg.visible = false;
+
+      interiorScene.add(set.bg);
+
+      hotspotDefs.forEach((def) => {
+        createInteriorHotspot(set, def);
+      });
+
+      return set;
+    }
+
+    /*
+     * 西楼书房热区：
+     * 坐标为照片像素位置（2278×1280 参考系）。
+     * 小件在前、大件在后，重叠处先命中小件。
+     */
+    const WEST_VASE_DEF = {
+      x: 479,
+      y: 282,
+      width: 524,
+      height: 230,
+      title: "瓶花供石",
+      description:
+        "窗棂前的青瓷瓶里插着时令花枝，旁立一块玲珑供石，是窗台上最静的角落。"
+    };
+
+    const WEST_WINDOW_DEF = {
+      x: 501,
+      y: 0,
+      width: 797,
+      height: 410,
+      title: "临窗园景",
+      description:
+        "两扇支起的窗牖外，园中树色与假山隐约可见，天光与清风一并迎进书房。"
+    };
+
+    const WEST_ALBUMS_DEF = {
+      x: 46,
+      y: 26,
+      width: 456,
+      height: 435,
+      title: "左墙画册",
+      description:
+        "粉壁上挂着几册装裱好的画页，山水与人物小品错落有致，是主人平日临习的范本。"
+    };
+
+    const WEST_BONSAI_DEF = {
+      x: 1299,
+      y: 218,
+      width: 228,
+      height: 294,
+      title: "窗台盆景",
+      description:
+        "一盆苍劲的松枝盆景立在窗台，枝干虬曲，为书房添了一分山林气。"
+    };
+
+    const WEST_SCROLL_DEF = {
+      x: 1617,
+      y: 26,
+      width: 182,
+      height: 448,
+      title: "壁上挂轴",
+      description:
+        "素轴上墨色疏淡，一枝花木斜出，笔意清简，与满室书卷气相映。"
+    };
+
+    const WEST_TALLTABLE_DEF = {
+      x: 2005,
+      y: 256,
+      width: 228,
+      height: 870,
+      title: "高几瓶花",
+      description:
+        "高几上一只长颈瓶斜插花枝，与案头盆景一高一低，遥相呼应。"
+    };
+
+    const WEST_THREAD_DEF = {
+      x: 615,
+      y: 602,
+      width: 228,
+      height: 141,
+      title: "案上丝线",
+      description:
+        "案角搁着几卷彩线，青绿与绯红相间，是装订册页、修补书衣备下的材料。"
+    };
+
+    const WEST_PAINTING_DEF = {
+      x: 843,
+      y: 525,
+      width: 410,
+      height: 192,
+      title: "案上书画",
+      description:
+        "画卷在案上层层摊开，一页人物小像墨色如新，正是主人批阅到一半的画稿。"
+    };
+
+    const WEST_INKSTONE_DEF = {
+      x: 1572,
+      y: 563,
+      width: 228,
+      height: 166,
+      title: "笔砚",
+      description:
+        "笔架与砚池各安其位，墨迹半干，仿佛主人刚搁笔小憩。"
+    };
+
+    const WEST_CUSHION_DEF = {
+      x: 46,
+      y: 678,
+      width: 296,
+      height: 205,
+      title: "蒲团",
+      description:
+        "一只素蒲团铺在地板上，盘坐其上观书赏画，最是自在。"
+    };
+
+    const WEST_STOOL_DEF = {
+      x: 342,
+      y: 627,
+      width: 273,
+      height: 256,
+      title: "顾绣的深远影响",
+      description:
+        `在中国刺绣工艺的发展历史上，真正以画绣闻名于世、并给画绣发展以极大影响的，即是明代的顾绣。顾绣，以技法精湛，形式典雅，艺术性极高而著称于世。直至清代四大名绣"苏绣、粤绣、湘绣、蜀绣"的一些针法，虽有自己的一方特色，也有巧鉴和运用顾绣针法之优处。顾绣，乃江南唯一以家族冠名之绣艺流派，400年来历经由盛而衰、乃至消亡、重生的变迁，可谓上海民间刺绣史上的奇迹。`
+    };
+
+    const WEST_DESK_DEF = {
+      x: 570,
+      y: 512,
+      width: 1367,
+      height: 486,
+      title: "顾绣的历史渊源",
+      description:
+        `顾绣又名露香园顾绣，诞生于明代嘉靖年间上海顾名世家族，顾名世修建露香园，顾家女眷闲暇以刺绣自娱，顾绣由此得名。最初由顾名世的缪氏开创，到孙媳韩希孟时技艺达到顶峰，她善于临摹宋元名家书画，刺绣作品神韵酷似原画，精妙传神，被后人称作"韩媛绣"，顾绣也因此享有画绣的美誉。
+
+顾绣原本属于闺阁刺绣，仅供家族赏玩，并不外传。明末顾家家道中落，顾氏后人顾兰玉开设绣坊，招收学徒传授刺绣技法，顾绣才走出家门，技艺广为传播，也对江南苏绣等诸多绣种产生深远影响。2006年，顾绣列入第一批国家级非物质文化遗产名录。`
+    };
+
+    const WEST_HOTSPOT_DEFS = [
+      WEST_STOOL_DEF,
+      WEST_DESK_DEF
+    ];
+
+    let westSet = createInteriorSet(
+      interiorTexture,
+      WEST_HOTSPOT_DEFS,
+      true,
+      WEST_IMAGE_W,
+      WEST_IMAGE_H
+    );
+
+    /*
+     * 中心绣坊（中心水阁 / 东院）热区：
+     * 坐标为照片像素位置（2278×1280 参考系）。
+     * 小件在前、大件在后，重叠处先命中小件。
+     */
+    const SCREEN_DEF = {
+      x: 114,
+      y: 333,
+      width: 387,
+      height: 461,
+      title: "木屏风",
+      description:
+        "四扇木屏风上绣着折枝花卉，绢面泛着微光，把门口的风轻轻挡在门外。"
+    };
+
+    const LATTICE_WINDOW_DEF = {
+      x: 0,
+      y: 38,
+      width: 296,
+      height: 346,
+      title: "临窗园景",
+      description:
+        "隔扇窗外竹影婆娑，天光落在绣架一角，正是引线描样最亮的地方。"
+    };
+
+    const SIDE_TABLE_DEF = {
+      x: 501,
+      y: 474,
+      width: 228,
+      height: 154,
+      title: "门边条案",
+      description:
+        "条案上搁着茶壶与茶盏，绣娘们轮班歇手时，这里总有温着的茶。"
+    };
+
+    const WALL_ALBUMS_DEF = {
+      x: 1025,
+      y: 243,
+      width: 387,
+      height: 218,
+      title: "壁上画样",
+      description:
+        "白墙上挂着一排画样册页，花鸟、山水各成小品，是绣样最初的底稿。"
+    };
+
+    const WALL_SCROLLS_DEF = {
+      x: 1458,
+      y: 141,
+      width: 478,
+      height: 410,
+      title: "壁上挂轴",
+      description:
+        "三幅立轴依次垂下，花鸟、山水、梅枝各成一景，为满室针线添了书卷气。"
+    };
+
+    const BOOKSHELF_DEF = {
+      x: 1959,
+      y: 346,
+      width: 228,
+      height: 384,
+      title: `顾绣的优美作品《米画山水图》`,
+      image: "./assets/shugui.jpg",
+      description:
+        `为明代韩希孟顾绣《宋元名迹册》中的一幅，摹仿米芾的米氏云山，以白绫为底，绣绘结合。画面描绘江南烟雨山水，峰峦云烟、渔帆汀洲，水墨韵味浓郁；针法精简，重在渲染烟云朦胧的意境，是顾绣"以绣仿画"的典型代表。`
+    };
+
+    const CABINET_DEF = {
+      x: 2073,
+      y: 602,
+      width: 205,
+      height: 333,
+      title: "右侧矮柜",
+      description:
+        "矮柜上搁着妆匣与布包，柜面被岁月磨得温润发亮。"
+    };
+
+    const HOOP_DEF = {
+      x: 843,
+      y: 986,
+      width: 273,
+      height: 154,
+      title: "绣绷",
+      description:
+        "一枚绣绷绷着素绢，花鸟初具轮廓，针脚细密齐整。"
+    };
+
+    const EAST_HOOP_DEF = {
+      x: 843,
+      y: 986,
+      width: 273,
+      height: 154,
+      title: "顾绣的传承保护",
+      description:
+        `中国民族民间文化保护工程2003年开展试点项目的申报工作，上海在民间曲艺类方面有一个项目入选第二批全国试点项目，并同时确立了两项市级试点项目，顾绣为市级试点项目之一。2005年2月，上海市文广影视管理局还在全国率先向一批民间艺人发放"艺术津贴"，南汇锣鼓书和青浦田山歌、顾绣的27名民间老艺人首批获得津贴。2019年11月，《国家级非物质文化遗产代表性项目保护单位名单》公布，上海市松江区文化馆获得"顾绣"项目保护单位资格。`
+    };
+
+    const THREAD_SPOOL_DEF = {
+      x: 91,
+      y: 1088,
+      width: 273,
+      height: 192,
+      title: "彩线线轴",
+      description:
+        "案头线轴排开，青碧、绯红、鹅黄各色丝线缠绕其上，旁注着配色。"
+    };
+
+    const FRONT_TABLE_DEF = {
+      x: 137,
+      y: 960,
+      width: 1071,
+      height: 320,
+      title: `顾绣的优美作品《洗马图》`,
+      image: "./assets/xiuan.jpg",
+      description:
+        `顾绣《宋元名迹册》代表作，明崇祯七年制作，取法赵孟頫画马。白绫地彩绣，画面绘垂柳溪水，马夫于河中洗刷骏马，马匹神态生动。多用擞和针，顺着马的肌肉纹理运针，半绣半绘，刻画细腻传神，尽显顾绣写实精妙的特点。`
+    };
+
+    const FRAME_ROWS_DEF = {
+      x: 456,
+      y: 474,
+      width: 1549,
+      height: 717,
+      title: "顾绣的制作工序",
+      description:
+        `1.选稿‌：第一道工序是选择临摹的蓝本，多取材于山水、花鸟、人物等文人画作，讲究选名家名画。
+2.勾画‌：绣娘将绣布平铺在透光的玻璃案上，用毛笔勾勒出图案线条，为后续"以线上色"打底。墨色宜浅不宜深，以保留笔墨韵味。
+3.配色‌：顾绣常用中间色线来呈现层次，种类可达千余种。配线需在自然光下进行，避免灯光色差，这被绣娘视为比刺绣更难的步骤。
+4.劈丝‌：把一根蚕丝线劈成多股细丝，最细可达1/256，细如发丝，轻盈到可以在空中漂浮，是顾绣的基本功。
+5.刺绣‌：讲究"平、齐、顺、光、匀、密、细"七字要求，针法多变，常用齐针、铺针、打籽针、滚针等十余种。绣制时从底层到上层逐层覆盖，用乱针抢等针法层层晕染，让色彩过渡自然。
+6.装裱‌：绣制完成后进行装裱，一幅中等尺寸的作品往往需要绣制三到六个月。`
+    };
+
+    const MAIN_FRAME_ROWS_DEF = {
+      x: 456,
+      y: 474,
+      width: 1549,
+      height: 717,
+      title: `顾绣的优美作品《洗马图》`,
+      image: "./assets/ximatu.jpg",
+      description:
+        `顾绣《宋元名迹册》代表作，明崇祯七年制作，取法赵孟頫画马。白绫地彩绣，画面绘垂柳溪水，马夫于河中洗刷骏马，马匹神态生动。多用擞和针，顺着马的肌肉纹理运针，半绣半绘，刻画细腻传神，尽显顾绣写实精妙的特点。`
+    };
+
+    const MAIN_WALL_SCROLLS_DEF = {
+      x: 1458,
+      y: 141,
+      width: 478,
+      height: 410,
+      title: `顾绣的优美作品《米画山水图》`,
+      image: "./assets/mihuashanshui.jpg",
+      description:
+        `为明代韩希孟顾绣《宋元名迹册》中的一幅，摹仿米芾的米氏云山，以白绫为底，绣绘结合。画面描绘江南烟雨山水，峰峦云烟、渔帆汀洲，水墨韵味浓郁；针法精简，重在渲染烟云朦胧的意境，是顾绣"以绣仿画"的典型代表。`
+    };
+
+    const MAIN_HOTSPOT_DEFS = [
+      MAIN_WALL_SCROLLS_DEF,
+      BOOKSHELF_DEF,
+      MAIN_FRAME_ROWS_DEF
+    ];
+
+    let mainSet = createInteriorSet(
+      interiorTexture2,
+      MAIN_HOTSPOT_DEFS,
+      true,
+      MAIN_IMAGE_W,
+      MAIN_IMAGE_H
+    );
+
+    /*
+     * 东院绣坊热区：保留原始绣坊描述
+     */
+    const EAST_HOTSPOT_DEFS = [
+      EAST_HOOP_DEF,
+      FRAME_ROWS_DEF
+    ];
+
+    let eastSet = createInteriorSet(
+      interiorTexture3,
+      EAST_HOTSPOT_DEFS,
+      true,
+      EAST_IMAGE_W,
+      EAST_IMAGE_H
+    );
+
+    /*
+     * 追踪当前激活的室内画面：
+     * 视口尺寸变化后需要整体重建，
+     * 热区几何才能与新视口保持一致；
+     * 室内命中直接用 set.defs 做 2D 判定。
+     */
+    let activeInteriorSet = null;
+
+    function disposeInteriorSet(set) {
+      if (set.bg) {
+        interiorScene.remove(set.bg);
+
+        set.bg.geometry.dispose();
+        set.bg.material.dispose();
+
+        set.bg = null;
+      }
+
+      set.hotspots.forEach((hotspot) => {
+        interiorScene.remove(hotspot);
+
+        hotspot.geometry.dispose();
+        hotspot.material.dispose();
+      });
+
+      set.hotspots = [];
+    }
+
+    function buildInteriorSets() {
+      disposeInteriorSet(westSet);
+      disposeInteriorSet(mainSet);
+      disposeInteriorSet(eastSet);
+
+      westSet = createInteriorSet(
+        interiorTexture,
+        WEST_HOTSPOT_DEFS,
+        true,
+        WEST_IMAGE_W,
+        WEST_IMAGE_H
+      );
+
+      mainSet = createInteriorSet(
+        interiorTexture2,
+        MAIN_HOTSPOT_DEFS,
+        true,
+        MAIN_IMAGE_W,
+        MAIN_IMAGE_H
+      );
+
+      eastSet = createInteriorSet(
+        interiorTexture3,
+        EAST_HOTSPOT_DEFS,
+        true,
+        EAST_IMAGE_W,
+        EAST_IMAGE_H
+      );
+
+      /*
+       * 重建后恢复原先激活的画面：
+       * 只有此前确实在室内才显示对应组，
+       * 其余情况各组均保持隐藏。
+       */
+      showInteriorSet(
+        isInside
+          ? activeDoorHotspot &&
+            (() => {
+              const key = activeDoorHotspot.userData.interiorKey;
+              if (key === "west") return westSet;
+              if (key === "main") return mainSet;
+              return eastSet;
+            })()
+          : null
+      );
+    }
+
+    let interiorRebuildTimer = 0;
+
+    function scheduleInteriorRebuild() {
+      clearTimeout(interiorRebuildTimer);
+
+      interiorRebuildTimer = setTimeout(() => {
+        buildInteriorSets();
+
+        invalidate();
+      }, 150);
+    }
+
+    function showInteriorSet(set) {
+      activeInteriorSet = set;
+
+      westSet.bg.visible =
+        set === westSet;
+
+      mainSet.bg.visible =
+        set === mainSet;
+
+      eastSet.bg.visible =
+        set === eastSet;
+
+      [westSet, mainSet, eastSet].forEach(
+        (s) => {
+          s.hotspots.forEach(
+            (hotspot) => {
+              hotspot.visible =
+                s === set;
+            }
+          );
+        }
+      );
+    }
+
+    // =====================================================
+    // 交互系统
+    // =====================================================
+
+    const raycaster =
+      new THREE.Raycaster();
+
+    /*
+     * 指针状态：
+     * pointermove 只记录坐标并标记 moved，
+     * 真正的射线检测放到动画循环里，
+     * 每帧最多执行一次（高速移动鼠标时
+     * 从每秒上百次检测降到 60 次）。
+     */
+    const pointer = {
+      x: 0,
+      y: 0,
+      clientX: 0,
+      clientY: 0,
+      moved: false
+    };
+
+    /*
+     * canvas 显示尺寸缓存（resize 时更新），
+     * 指针坐标相对 canvas 自身映射，
+     * 不依赖"canvas 一定铺满视口"的假设。
+     */
+    const view = {
+      w: window.innerWidth,
+      h: window.innerHeight
+    };
+
+    let isInside = false;
+    let isFocused = false;
+    let isMoving = false;
+    let hoveredObject = null;
+
+    /*
+     * 记录从哪个门进入，
+     * 用于切换对应的室内画面。
+     */
+    let activeDoorHotspot = null;
+    let cameraAnim = null;
+
+    function updatePointerFromEvent(event) {
+      /*
+       * 相对 canvas 缓存尺寸换算 NDC，
+       * 省去每次 getBoundingClientRect 的强制布局。
+       */
+      pointer.clientX =
+        event.clientX;
+
+      pointer.clientY =
+        event.clientY;
+
+      pointer.x =
+        (event.clientX /
+          view.w) * 2 - 1;
+
+      pointer.y =
+        -(event.clientY /
+          view.h) * 2 + 1;
+    }
+
+    /*
+     * 室内热区命中：纯 2D 图像坐标判定，
+     * 与渲染使用同一套 contain 适配公式，
+     * 保证命中区域与画面构造上完全对齐。
+     */
+    function pickInteriorDef(clientX, clientY) {
+      const set = activeInteriorSet;
+
+      if (!set || !set.defs || !set.defs.length) {
+        return null;
+      }
+
+      const aspect =
+        view.w > 0 && view.h > 0
+          ? view.w / view.h
+          : WORLD_WIDTH / WORLD_HEIGHT;
+
+      const visH = WORLD_HEIGHT / 1.15;
+      const visW = WORLD_HEIGHT * aspect / 1.15;
+
+      const worldX =
+        (clientX / view.w) * visW - visW / 2;
+      const worldY =
+        (1 - clientY / view.h) * visH - visH / 2;
+
+      const imgX =
+        ((worldX + set.planeW / 2) /
+          set.planeW) * set.imgW;
+      const imgY =
+        ((set.centerY + set.planeH / 2 - worldY) /
+          set.planeH) * set.imgH;
+
+      for (const def of set.defs) {
+        if (
+          imgX >= def.x &&
+          imgX <= def.x + def.width &&
+          imgY >= def.y &&
+          imgY <= def.y + def.height
+        ) {
+          return {
+            userData: {
+              type: "interior",
+              title: def.title,
+              description: def.description
+            }
+          };
+        }
+      }
+
+      return null;
+    }
+
+    function getIntersectedObject() {
+      /*
+       * 室内走 2D 图像坐标命中；
+       * 园林热区仍用射线检测。
+       */
+      if (isInside) {
+        return pickInteriorDef(
+          pointer.clientX,
+          pointer.clientY
+        );
+      }
+
+      raycaster.setFromCamera(
+        pointer,
+        camera
+      );
+
+      const intersections =
+        raycaster.intersectObjects(
+          gardenHotspots,
+          false
+        );
+
+      if (!intersections.length) {
+        return null;
+      }
+
+      const object =
+        intersections[0].object;
+
+      return object || null;
+    }
+
+    function hideCursorTip() {
+      canvas.style.cursor =
+        "default";
+
+      dom.cursorTip.classList.remove(
+        "show"
+      );
+    }
+
+    /*
+     * 悬停处理（动画循环内调用）。
+     */
+    function processHover() {
+      const object =
+        getIntersectedObject();
+
+      hoveredObject = object;
+
+      if (object) {
+        canvas.style.cursor =
+          "pointer";
+
+        dom.cursorTip.innerText =
+          object.userData.title;
+
+        dom.cursorTip.classList.add(
+          "show"
+        );
+      } else {
+        hideCursorTip();
+      }
+    }
+
+    // =====================================================
+    // 信息面板
+    // =====================================================
+
+    function showInfo(data) {
+      var imgHtml = "";
+      var titleStr = data.title || "";
+      var imgMap = {
+        "顾绣的优美作品《洗马图》": "./assets/xiuan.jpg",
+        "顾绣的优美作品《米画山水图》": "./assets/shugui.jpg"
+      };
+      var imgSrc = data.image || imgMap[titleStr] || "";
+      if (imgSrc) {
+        imgHtml = '<img src="' + imgSrc + '?t=' + Date.now() + '" alt="' + titleStr + '" style="width:100%;border-radius:4px;margin-bottom:13px;" />';
+      }
+      dom.infoContent.innerHTML = '<h2>' + titleStr + '</h2>' + imgHtml + '<p>' + data.description + '</p>';
+
+      dom.infoPanel.classList.add(
+        "show"
+      );
+    }
+
+    function closeInfo() {
+      dom.infoPanel.classList.remove(
+        "show"
+      );
+    }
+
+    document
+      .querySelector("#closeButton")
+      .addEventListener(
+        "click",
+        closeInfo
+      );
+
+    // =====================================================
+    // 平滑镜头推进（并入主循环统一驱动）
+    // =====================================================
+
+    function moveCamera({
+      x,
+      y,
+      zoom,
+      duration = 1300,
+      callback
+    }) {
+      if (isMoving) {
+        return;
+      }
+
+      isMoving = true;
+
+      cameraAnim = {
+        sx: camera.position.x,
+        sy: camera.position.y,
+        sz: camera.zoom,
+        ex: x,
+        ey: y,
+        ez: zoom,
+        start: performance.now(),
+        duration,
+        callback
+      };
+    }
+
+    // =====================================================
+    // 进入内部场景
+    // =====================================================
+
+    /*
+     * 进门不再停在门口等门扇动画：
+     * 渐白转场直接切入室内画面。
+     */
+    const INTERIOR_FADE_MS = 450;
+
+    function enterInterior(
+      doorHotspot
+    ) {
+      if (isMoving || isInside) {
+        return;
+      }
+
+      isInside = true;
+      isFocused = false;
+      isMoving = true;
+
+      activeDoorHotspot =
+        doorHotspot;
+
+      closeInfo();
+      hideCursorTip();
+
+      /*
+       * 渐白 → 覆满时切换室内 → 渐显。
+       */
+      dom.fadeOverlay.classList.add(
+        "show"
+      );
+
+      setTimeout(() => {
+        switchToInterior();
+
+        isMoving = false;
+
+        dom.fadeOverlay.classList.remove(
+          "show"
+        );
+      }, INTERIOR_FADE_MS);
+    }
+
+    function switchToInterior() {
+      /*
+       * 按入口切换室内画面：
+       * 西楼楼阁用书房，
+       * 中心水阁用绣房，
+       * 东院用绣坊。
+       */
+      showInteriorSet(
+        activeDoorHotspot &&
+          (() => {
+            const key = activeDoorHotspot.userData.interiorKey;
+            if (key === "west") return westSet;
+            if (key === "main") return mainSet;
+            return eastSet;
+          })()
+      );
+
+      backgroundPlane.visible =
+        false;
+
+      gardenHotspots.forEach(
+        (object) => {
+          object.visible = false;
+        }
+      );
+
+      doorGroups.forEach(
+        (group) => {
+          group.visible = false;
+        }
+      );
+
+      interiorScene.visible =
+        true;
+
+      camera.position.set(
+        0,
+        0,
+        10
+      );
+
+      camera.zoom = 1.15;
+      camera.updateProjectionMatrix();
+
+      hoveredObject = null;
+
+      hideCursorTip();
+
+      dom.backButton.classList.add(
+        "show"
+      );
+
+      invalidate();
+    }
+
+    // =====================================================
+    // 返回园林总览
+    // =====================================================
+
+    function returnToGarden() {
+      if (isMoving || !isInside) {
+        return;
+      }
+
+      closeInfo();
+
+      isInside = false;
+      isFocused = false;
+
+      activeDoorHotspot = null;
+
+      /*
+       * 立即切回总览并复位镜头。
+       */
+      interiorScene.visible =
+        false;
+
+      backgroundPlane.visible =
+        true;
+
+      gardenHotspots.forEach(
+        (object) => {
+          object.visible = true;
+        }
+      );
+
+      doorGroups.forEach(
+        (group) => {
+          group.visible = true;
+        }
+      );
+
+      camera.position.set(
+        0,
+        0,
+        10
+      );
+
+      camera.zoom = 1;
+      camera.updateProjectionMatrix();
+
+      hoveredObject = null;
+
+      hideCursorTip();
+
+      dom.backButton.classList.remove(
+        "show"
+      );
+
+      invalidate();
+    }
+
+    dom.backButton.addEventListener(
+      "click",
+      () => {
+        if (isInside) {
+          returnToGarden();
+        } else if (isFocused) {
+          resetCameraToOverview();
+        }
+      }
+    );
+
+    // =====================================================
+    // 鼠标悬停（只在指针真正移动时标记）
+    // =====================================================
+
+    canvas.addEventListener(
+      "pointermove",
+      (event) => {
+        updatePointerFromEvent(event);
+
+        pointer.moved = true;
+
+        /*
+         * 提示框跟随只用 transform，
+         * 不触发页面重排。
+         */
+        dom.cursorTip.style.transform =
+          `translate(${event.clientX + 14}px, ${event.clientY + 14}px)`;
+      }
+    );
+
+    canvas.addEventListener(
+      "pointerleave",
+      () => {
+        pointer.moved = false;
+        hoveredObject = null;
+        hideCursorTip();
+      }
+    );
+
+    // =====================================================
+    // 点击交互
+    // =====================================================
+
+    canvas.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (isMoving) {
+          return;
+        }
+
+        updatePointerFromEvent(event);
+
+        const object =
+          getIntersectedObject();
+
+        if (!object) {
+          return;
+        }
+
+        const data =
+          object.userData;
+
+        /*
+         * 内部物件
+         */
+        if (isInside) {
+          showInfo(data);
+          return;
+        }
+
+        /*
+         * 点击大门 / 可进入的楼阁：
+         * 直接进入对应室内画面。
+         */
+        if (
+          data.type === "door" ||
+          (data.type === "building" &&
+            data.interiorKey)
+        ) {
+          enterInterior(object);
+          return;
+        }
+
+        /*
+         * 点击建筑推进
+         */
+        if (data.type === "building") {
+          focusBuilding(object);
+          showInfo(data);
+          return;
+        }
+
+        /*
+         * 点击水池、亭子、竹林等细节
+         * （水心亭可推进，其余仅查看说明）
+         */
+        if (data.focusZoom) {
+          focusBuilding(object);
+        }
+
+        showInfo(data);
+      }
+    );
+
+    // =====================================================
+    // 点击建筑推进
+    // =====================================================
+
+    /*
+     * 点击建筑 / 水心亭推进。
+     * 推进后左下角出现返回按钮，可随时撤回总览。
+     */
+    function focusBuilding(object) {
+      if (!object) {
+        return;
+      }
+
+      const zoom =
+        object.userData.focusZoom ||
+        (object === centerBuilding
+          ? 2.1
+          : 1.8);
+
+      isFocused = true;
+
+      dom.backButton.classList.add(
+        "show"
+      );
+
+      moveCamera({
+        x: object.position.x,
+        y: object.position.y,
+        zoom,
+        duration: 1400
+      });
+    }
+
+    /*
+     * 从推进状态撤回园林总览。
+     * 推进途中点击也可立即撤回。
+     */
+    function resetCameraToOverview() {
+      closeInfo();
+
+      isFocused = false;
+
+      hoveredObject = null;
+      hideCursorTip();
+
+      dom.backButton.classList.remove(
+        "show"
+      );
+
+      cameraAnim = null;
+      isMoving = false;
+
+      moveCamera({
+        x: 0,
+        y: 0,
+        zoom: 1,
+        duration: 1200
+      });
+    }
+
+    // =====================================================
+    // 自适应
+    // =====================================================
+
+    function resize() {
+      const aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+      /*
+       * 保持 16:9 世界比例。
+       */
+      camera.left =
+        -(WORLD_HEIGHT * aspect) / 2;
+
+      camera.right =
+        (WORLD_HEIGHT * aspect) / 2;
+
+      camera.top =
+        WORLD_HEIGHT / 2;
+
+      camera.bottom =
+        -WORLD_HEIGHT / 2;
+
+      camera.updateProjectionMatrix();
+
+      renderer.setPixelRatio(
+        Math.min(
+          window.devicePixelRatio || 1,
+          MAX_PIXEL_RATIO
+        )
+      );
+
+      /*
+       * 不传 false：让 canvas 内联样式与
+       * 绘图缓冲区始终保持同步，
+       * 避免窗口缩放后画面拉伸，
+       * 也让指针映射与显示尺寸严格一致。
+       */
+      renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+      );
+
+      view.w =
+        canvas.clientWidth ||
+        window.innerWidth;
+
+      view.h =
+        canvas.clientHeight ||
+        window.innerHeight;
+
+      /*
+       * 室内画面按载入时视口计算几何；
+       * 视口尺寸变化后必须整体重建，
+       * 热区才能继续与新视口对齐。
+       */
+      scheduleInteriorRebuild();
+
+      invalidate();
+    }
+
+    window.addEventListener(
+      "resize",
+      resize
+    );
+
+    resize();
+
+    // =====================================================
+    // 背景音乐
+    // =====================================================
+
+    /*
+     * 优先播放 assets/bgm.mp3（如存在该文件）；
+     * 否则回退到 Web Audio 实时生成的
+     * 五声音阶古筝风环境音乐（无需任何素材）。
+     *
+     * 浏览器禁止自动播放声音，
+     * 因此首次点击页面任意处自动开始，
+     * 右上角按钮可随时开关。
+     */
+    const PAD_ROOTS = [123.47, 146.83, 220.0];
+
+    // D 大调五声音阶（宫商角徵羽），跨三个八度
+    const SCALE = [
+      146.83, 164.81, 185.0, 220.0, 246.94,
+      293.66, 329.63, 369.99, 440.0, 493.88,
+      587.33, 659.26, 739.99, 880.0
+    ];
+
+    let audioCtx = null;
+    let musicMaster = null;
+    let musicOn = false;
+    let musicMode = "none";
+    let bgmAudio = null;
+    let pluckTimer = null;
+    let padTimer = null;
+    let scaleIndex = 5;
+
+    function playPluck(freq, when, vol) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+
+      gain.gain.setValueAtTime(0, when);
+      gain.gain.linearRampToValueAtTime(
+        vol,
+        when + 0.012
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        when + 2.2
+      );
+
+      osc.connect(gain);
+      gain.connect(musicMaster);
+
+      osc.start(when);
+      osc.stop(when + 2.4);
+    }
+
+    function playPad() {
+      const root =
+        PAD_ROOTS[
+          Math.floor(Math.random() * PAD_ROOTS.length)
+        ];
+      const when = audioCtx.currentTime;
+
+      [root, root * 1.5, root * 2].forEach(
+        (freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = "sine";
+          osc.frequency.value = freq;
+
+          const peak = 0.035 - i * 0.008;
+
+          gain.gain.setValueAtTime(0, when);
+          gain.gain.linearRampToValueAtTime(
+            peak,
+            when + 3.5
+          );
+          gain.gain.linearRampToValueAtTime(
+            0,
+            when + 9
+          );
+
+          osc.connect(gain);
+          gain.connect(musicMaster);
+
+          osc.start(when);
+          osc.stop(when + 9.2);
+        }
+      );
+    }
+
+    function schedulePluck() {
+      pluckTimer = setTimeout(() => {
+        if (musicOn && musicMode === "generative" && audioCtx) {
+          const when = audioCtx.currentTime + 0.05;
+
+          /*
+           * 随机游走、倾向级进，
+           * 偶尔叠加五度 / 八度和音，
+           * 模拟古筝散板点缀。
+           */
+          const step = Math.round((Math.random() - 0.5) * 4);
+          scaleIndex = Math.max(
+            0,
+            Math.min(SCALE.length - 1, scaleIndex + step)
+          );
+
+          const vol = 0.09 + Math.random() * 0.05;
+          playPluck(SCALE[scaleIndex], when, vol);
+
+          if (Math.random() < 0.25) {
+            const harmony =
+              scaleIndex + (Math.random() < 0.5 ? 3 : 5);
+            if (harmony < SCALE.length) {
+              playPluck(SCALE[harmony], when + 0.06, vol * 0.55);
+            }
+          }
+        }
+
+        schedulePluck();
+      }, (0.9 + Math.random() * 1.4) * 1000);
+    }
+
+    function schedulePad() {
+      padTimer = setTimeout(() => {
+        if (musicOn && musicMode === "generative" && audioCtx) {
+          playPad();
+        }
+
+        schedulePad();
+      }, (9 + Math.random() * 5) * 1000);
+    }
+
+    function startGenerative() {
+      if (!audioCtx) {
+        audioCtx =
+          new (window.AudioContext ||
+            window.webkitAudioContext)();
+
+        musicMaster = audioCtx.createGain();
+        musicMaster.gain.value = 0;
+        musicMaster.connect(audioCtx.destination);
+
+        /*
+         * 反馈延迟，营造园林空谷回响。
+         */
+        const delay = audioCtx.createDelay(2);
+        delay.delayTime.value = 0.42;
+
+        const feedback = audioCtx.createGain();
+        feedback.gain.value = 0.34;
+
+        const wet = audioCtx.createGain();
+        wet.gain.value = 0.35;
+
+        musicMaster.connect(delay);
+        delay.connect(feedback);
+        feedback.connect(delay);
+        delay.connect(wet);
+        wet.connect(audioCtx.destination);
+      }
+
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      musicMaster.gain.setTargetAtTime(
+        0.32,
+        audioCtx.currentTime,
+        0.8
+      );
+
+      schedulePluck();
+      schedulePad();
+    }
+
+    function startMusic() {
+      if (musicOn) {
+        return;
+      }
+
+      musicOn = true;
+
+      /*
+       * 先尝试本地音乐文件（依次试 mp4 和 mp3），
+       * 不可用则回退到生成音乐。
+       */
+      const musicSources = [
+        "./assets/bgm.mp4",
+        "./assets/bgm.mp3"
+      ];
+      let musicIndex = 0;
+
+      bgmAudio = new Audio();
+      bgmAudio.loop = true;
+
+      let settled = false;
+
+      const tryNextMusic = () => {
+        if (musicIndex >= musicSources.length) {
+          useGenerative();
+          return;
+        }
+        bgmAudio.src = musicSources[musicIndex];
+        musicIndex++;
+        bgmAudio.load();
+        const attempt = bgmAudio.play();
+        if (attempt && attempt.then) {
+          attempt.then(useFile).catch(() => {});
+        }
+      };
+
+      const useFile = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        musicMode = "file";
+
+        let v = 0;
+        const iv = setInterval(() => {
+          v = Math.min(0.32, v + 0.02);
+          bgmAudio.volume = v;
+          if (v >= 0.32) {
+            clearInterval(iv);
+          }
+        }, 100);
+
+        dom.musicButton.textContent = "音乐 开";
+      };
+
+      const useGenerative = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        musicMode = "generative";
+        startGenerative();
+
+        dom.musicButton.textContent = "音乐 开";
+      };
+
+      bgmAudio.addEventListener(
+        "canplaythrough",
+        useFile,
+        { once: true }
+      );
+
+      bgmAudio.addEventListener(
+        "error",
+        () => {
+          if (!settled) {
+            tryNextMusic();
+          }
+        }
+      );
+
+      tryNextMusic();
+
+      setTimeout(() => {
+        if (!settled) {
+          useGenerative();
+        }
+      }, 4000);
+    }
+
+    function toggleMusic() {
+      if (!musicOn) {
+        startMusic();
+        return;
+      }
+
+      if (musicMode === "none") {
+        /*
+         * 仍在探测音乐文件，
+         * 稍后自动重试开关。
+         */
+        setTimeout(toggleMusic, 300);
+        return;
+      }
+
+      if (musicMode === "file") {
+        if (bgmAudio.paused) {
+          bgmAudio.play().catch(() => {});
+          dom.musicButton.textContent = "音乐 开";
+        } else {
+          bgmAudio.pause();
+          dom.musicButton.textContent = "音乐 关";
+        }
+
+        return;
+      }
+
+      /*
+       * 生成音乐：淡入淡出并停启音符调度，
+       * 避免 suspend 后积压的排队音符在恢复时爆发。
+       */
+      if (pluckTimer) {
+        clearTimeout(pluckTimer);
+        clearTimeout(padTimer);
+        pluckTimer = null;
+        padTimer = null;
+
+        musicMaster.gain.setTargetAtTime(
+          0,
+          audioCtx.currentTime,
+          0.2
+        );
+
+        dom.musicButton.textContent = "音乐 关";
+      } else {
+        musicMaster.gain.setTargetAtTime(
+          0.32,
+          audioCtx.currentTime,
+          0.4
+        );
+
+        schedulePluck();
+        schedulePad();
+
+        dom.musicButton.textContent = "音乐 开";
+      }
+    }
+
+    /*
+     * 首次任意点击自动开始（按钮自身除外，
+     * 由按钮的开关逻辑处理，避免开始后立即被暂停）。
+     */
+    window.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (
+          event.target === dom.musicButton ||
+          dom.musicButton.contains(event.target)
+        ) {
+          return;
+        }
+
+        startMusic();
+      },
+      { capture: true }
+    );
+
+    dom.musicButton.addEventListener(
+      "click",
+      toggleMusic
+    );
+
+    // =====================================================
+    // 动态氛围层
+    // =====================================================
+
+    /*
+     * 让静态长卷"活"起来的五层动态：
+     *   1. 水面涟漪 —— 用着色器对背景图水池区域
+     *      做实时 UV 扰动 + 微光，边缘平滑过渡无缝；
+     *   2. 薄雾漂移 —— 两层柔雾缓慢横移、呼吸；
+     *   3. 蝴蝶 —— 沿利萨茹曲线巡游、振翅；
+     *   4. 飘落花瓣 —— 全景散落少量花瓣缓缓下坠；
+     *   5. 竹林摇曳 —— 右侧竹林风摆扰动，
+     *      根部固定、梢部摆幅最大、竹竿错拍。
+     *
+     * 开启期间渲染循环连续运行（场景极轻，
+     * GPU 开销可忽略）；关闭后恢复按需渲染。
+     * 进入建筑内部时自动隐藏（室内为静态画面）。
+     */
+    const ambientGroup = new THREE.Group();
+    const ambientClock = new THREE.Clock();
+    let ambientTime = 0;
+    let effectsOn = true;
+
+    function createCanvasTexture(
+      width,
+      height,
+      draw
+    ) {
+      const canvas2d =
+        document.createElement("canvas");
+
+      canvas2d.width = width;
+      canvas2d.height = height;
+
+      draw(
+        canvas2d.getContext("2d"),
+        width,
+        height
+      );
+
+      const texture =
+        new THREE.CanvasTexture(canvas2d);
+
+      texture.colorSpace =
+        THREE.SRGBColorSpace;
+
+      return texture;
+    }
+
+    /*
+     * 1. 水面涟漪（曲水池区域，
+     *    图片坐标 x 465-915 / y 410-630）。
+     */
+    const POND = {
+      x0: 465,
+      x1: 915,
+      y0: 410,
+      y1: 630
+    };
+
+    const waterUniforms = {
+      uMap: {
+        value: backgroundTexture
+      },
+      uTime: {
+        value: 0
+      },
+      uBgOffset: {
+        value: new THREE.Vector2(
+          POND.x0 / IMAGE_WIDTH,
+          1 - POND.y1 / IMAGE_HEIGHT
+        )
+      },
+      uBgScale: {
+        value: new THREE.Vector2(
+          (POND.x1 - POND.x0) / IMAGE_WIDTH,
+          (POND.y1 - POND.y0) / IMAGE_HEIGHT
+        )
+      }
+    };
+
+    const waterMaterial =
+      new THREE.ShaderMaterial({
+        uniforms: waterUniforms,
+
+        vertexShader: `
+          varying vec2 vUv;
+
+          void main() {
+            vUv = uv;
+
+            gl_Position =
+              projectionMatrix *
+              modelViewMatrix *
+              vec4(position, 1.0);
+          }
+        `,
+
+        fragmentShader: `
+          uniform sampler2D uMap;
+          uniform float uTime;
+          uniform vec2 uBgOffset;
+          uniform vec2 uBgScale;
+
+          varying vec2 vUv;
+
+          void main() {
+            /*
+             * 边缘衰减：
+             * 涟漪在池边平滑归零，避免接缝。
+             */
+            vec2 edge =
+              min(vUv, 1.0 - vUv);
+
+            float edgeDist =
+              min(edge.x, edge.y);
+
+            float falloff =
+              smoothstep(0.0, 0.22, edgeDist);
+
+            /*
+             * 两组交叉正弦叠加成涟漪。
+             */
+            float w1 =
+              sin(vUv.x * 34.0 + uTime * 1.7) * 0.5 +
+              sin(vUv.y * 27.0 - uTime * 1.3) * 0.5;
+
+            float w2 =
+              sin(vUv.x * 61.0 - vUv.y * 48.0 + uTime * 2.3) * 0.5 +
+              sin(vUv.y * 71.0 + vUv.x * 39.0 - uTime * 1.9) * 0.5;
+
+            vec2 bgUv =
+              uBgOffset + vUv * uBgScale +
+              vec2(w1, w2) * 0.0022 * falloff;
+
+            vec3 col =
+              texture2D(uMap, bgUv).rgb;
+
+            /*
+             * 波峰处的粼粼微光。
+             */
+            float glint =
+              pow(max(0.0, w2), 3.0) *
+              0.12 * falloff;
+
+            col += glint;
+
+            gl_FragColor = vec4(col, 1.0);
+
+            #include <colorspace_fragment>
+          }
+        `
+      });
+
+    const waterMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(
+        (POND.x1 - POND.x0) / IMAGE_WIDTH *
+          WORLD_WIDTH,
+        (POND.y1 - POND.y0) / IMAGE_HEIGHT *
+          WORLD_HEIGHT
+      ),
+      waterMaterial
+    );
+
+    const pondCenter =
+      imageToWorld(690, 520);
+
+    waterMesh.position.set(
+      pondCenter.x,
+      pondCenter.y,
+      0.3
+    );
+
+    ambientGroup.add(waterMesh);
+
+    /*
+     * 2. 薄雾（柔光渐变贴图，缓慢漂移）。
+     */
+    const mistTexture = createCanvasTexture(
+      256,
+      128,
+      (ctx, w, h) => {
+        const gradient =
+          ctx.createRadialGradient(
+            w / 2,
+            h / 2,
+            8,
+            w / 2,
+            h / 2,
+            w / 2
+          );
+
+        gradient.addColorStop(
+          0,
+          "rgba(255,255,255,0.85)"
+        );
+
+        gradient.addColorStop(
+          1,
+          "rgba(255,255,255,0)"
+        );
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+      }
+    );
+
+    function createMist(
+      width,
+      height,
+      y,
+      z,
+      opacity,
+      speed
+    ) {
+      const mist = new THREE.Mesh(
+        new THREE.PlaneGeometry(
+          width,
+          height
+        ),
+        new THREE.MeshBasicMaterial({
+          map: mistTexture,
+          transparent: true,
+          opacity,
+          depthWrite: false
+        })
+      );
+
+      mist.position.set(0, y, z);
+      mist.renderOrder = 1;
+      mist.userData = { opacity, speed };
+
+      return mist;
+    }
+
+    const mistLayers = [
+      createMist(11, 3.6, -1.3, 0.35, 0.075, 0.12),
+      createMist(13, 4.2, 1.7, 0.42, 0.055, 0.07),
+      createMist(12, 3.0, -3.3, 0.45, 0.045, 0.09)
+    ];
+
+    mistLayers.forEach((mist) => {
+      ambientGroup.add(mist);
+    });
+
+    /*
+     * 3. 蝴蝶。
+     */
+    const butterflyTexture =
+      createCanvasTexture(64, 48, (ctx) => {
+        ctx.translate(32, 24);
+
+        ctx.fillStyle =
+          "rgba(235,150,70,0.95)";
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+          -11, -3, 11, 7, -0.4, 0, Math.PI * 2
+        );
+
+        ctx.fill();
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+          11, -3, 11, 7, 0.4, 0, Math.PI * 2
+        );
+
+        ctx.fill();
+
+        ctx.fillStyle =
+          "rgba(240,180,90,0.85)";
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+          -9, 4, 8, 5, 0.35, 0, Math.PI * 2
+        );
+
+        ctx.fill();
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+          9, 4, 8, 5, -0.35, 0, Math.PI * 2
+        );
+
+        ctx.fill();
+
+        ctx.fillStyle =
+          "rgba(60,40,30,0.95)";
+
+        ctx.fillRect(-1.5, -8, 3, 16);
+      });
+
+    function createButterfly(
+      cx,
+      cy,
+      rx,
+      ry,
+      speedA,
+      speedB
+    ) {
+      const butterfly = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.5, 0.36),
+        new THREE.MeshBasicMaterial({
+          map: butterflyTexture,
+          transparent: true,
+          depthWrite: false
+        })
+      );
+
+      butterfly.renderOrder = 3;
+
+      butterfly.userData = {
+        cx,
+        cy,
+        rx,
+        ry,
+        speedA,
+        speedB,
+        phase: Math.random() * Math.PI * 2
+      };
+
+      return butterfly;
+    }
+
+    const leftSpot = imageToWorld(300, 380);
+    const rightSpot = imageToWorld(1000, 500);
+
+    const butterflies = [
+      createButterfly(
+        leftSpot.x, leftSpot.y,
+        1.3, 0.7, 0.5, 0.9
+      ),
+      createButterfly(
+        rightSpot.x, rightSpot.y,
+        1.1, 0.5, 0.42, 1.1
+      )
+    ];
+
+    butterflies.forEach((butterfly) => {
+      ambientGroup.add(butterfly);
+    });
+
+    /*
+     * 4. 飘落花瓣。
+     */
+    const petalTexture = createCanvasTexture(
+      32,
+      32,
+      (ctx) => {
+        const gradient =
+          ctx.createRadialGradient(
+            16, 16, 2, 16, 16, 14
+          );
+
+        gradient.addColorStop(
+          0,
+          "rgba(246,196,206,0.95)"
+        );
+
+        gradient.addColorStop(
+          1,
+          "rgba(232,158,178,0.7)"
+        );
+
+        ctx.fillStyle = gradient;
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+          16, 16, 13, 8, 0.5, 0, Math.PI * 2
+        );
+
+        ctx.fill();
+      }
+    );
+
+    const petalGeometry =
+      new THREE.PlaneGeometry(0.16, 0.16);
+
+    const petalMaterial =
+      new THREE.MeshBasicMaterial({
+        map: petalTexture,
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false
+      });
+
+    const petals = [];
+
+    for (let i = 0; i < 28; i++) {
+      const petal = new THREE.Mesh(
+        petalGeometry,
+        petalMaterial
+      );
+
+      petal.renderOrder = 2;
+
+      petal.userData = {
+        speed: 0.22 + Math.random() * 0.25,
+        swayAmp: 0.4 + Math.random() * 0.5,
+        phase: Math.random() * Math.PI * 2,
+        rotSpeed:
+          (Math.random() < 0.5 ? -1 : 1) *
+          (0.5 + Math.random())
+      };
+
+      petal.position.set(
+        -7 + Math.random() * 14,
+        -4.5 + Math.random() * 9.5,
+        0.4 + Math.random() * 0.25
+      );
+
+      petals.push(petal);
+      ambientGroup.add(petal);
+    }
+
+    /*
+     * 5. 竹林摇曳（右侧沿墙竹林，
+     *    图片坐标 x 1225-1362 / y 75-640）：
+     *    水平风摆扰动，根部固定、梢部摆幅最大，
+     *    每根竹竿相位错开，叠加缓慢阵风。
+     *    左边界避开东侧楼阁屋顶（x≈1207 处结束）。
+     */
+    const BAMBOO = {
+      x0: 1225,
+      x1: 1362,
+      y0: 75,
+      y1: 640
+    };
+
+    const bambooUniforms = {
+      uMap: {
+        value: backgroundTexture
+      },
+      uTime: {
+        value: 0
+      },
+      uBgOffset: {
+        value: new THREE.Vector2(
+          BAMBOO.x0 / IMAGE_WIDTH,
+          1 - BAMBOO.y1 / IMAGE_HEIGHT
+        )
+      },
+      uBgScale: {
+        value: new THREE.Vector2(
+          (BAMBOO.x1 - BAMBOO.x0) / IMAGE_WIDTH,
+          (BAMBOO.y1 - BAMBOO.y0) / IMAGE_HEIGHT
+        )
+      }
+    };
+
+    const bambooMaterial =
+      new THREE.ShaderMaterial({
+        uniforms: bambooUniforms,
+
+        vertexShader: `
+          varying vec2 vUv;
+
+          void main() {
+            vUv = uv;
+
+            gl_Position =
+              projectionMatrix *
+              modelViewMatrix *
+              vec4(position, 1.0);
+          }
+        `,
+
+        fragmentShader: `
+          uniform sampler2D uMap;
+          uniform float uTime;
+          uniform vec2 uBgOffset;
+          uniform vec2 uBgScale;
+
+          varying vec2 vUv;
+
+          void main() {
+            /*
+             * 边缘衰减：摆动在区域边界平滑归零。
+             */
+            vec2 edge =
+              min(vUv, 1.0 - vUv);
+
+            float edgeDist =
+              min(edge.x, edge.y);
+
+            float falloff =
+              smoothstep(0.0, 0.18, edgeDist);
+
+            /*
+             * 根部固定，越往梢部摆幅越大。
+             */
+            float heightFactor =
+              smoothstep(0.05, 0.9, vUv.y);
+
+            /*
+             * 缓慢阵风：摆幅整体强弱起伏。
+             */
+            float gust =
+              0.75 +
+              0.25 * sin(
+                uTime * 0.35 +
+                sin(uTime * 0.13) * 2.0
+              );
+
+            /*
+             * 每列相位不同，竹竿各自错拍。
+             */
+            float phase = vUv.x * 9.0;
+
+            float sway =
+              sin(uTime * 1.1 + phase) * 0.6 +
+              sin(uTime * 2.3 + phase * 1.7) * 0.25 +
+              sin(uTime * 0.4) * 0.15;
+
+            vec2 bgUv =
+              uBgOffset + vUv * uBgScale;
+
+            bgUv.x +=
+              sway * gust * 0.0085 *
+              heightFactor * falloff;
+
+            vec3 col =
+              texture2D(uMap, bgUv).rgb;
+
+            gl_FragColor = vec4(col, 1.0);
+
+            #include <colorspace_fragment>
+          }
+        `
+      });
+
+    const bambooMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(
+        (BAMBOO.x1 - BAMBOO.x0) / IMAGE_WIDTH *
+          WORLD_WIDTH,
+        (BAMBOO.y1 - BAMBOO.y0) / IMAGE_HEIGHT *
+          WORLD_HEIGHT
+      ),
+      bambooMaterial
+    );
+
+    const bambooCenter =
+      imageToWorld(
+        (BAMBOO.x0 + BAMBOO.x1) / 2,
+        (BAMBOO.y0 + BAMBOO.y1) / 2
+      );
+
+    bambooMesh.position.set(
+      bambooCenter.x,
+      bambooCenter.y,
+      0.3
+    );
+
+    ambientGroup.add(bambooMesh);
+
+    scene.add(ambientGroup);
+
+    /*
+     * 每帧更新氛围层。
+     */
+    function updateAmbient(t) {
+      waterUniforms.uTime.value = t;
+      bambooUniforms.uTime.value = t;
+
+      mistLayers.forEach(
+        (mist, i) => {
+          mist.position.x +=
+            mist.userData.speed * lastDt;
+
+          /*
+           * 按雾层自身宽度回绕：
+           * 完全飘出世界边界后再从另一侧进入，
+           * 避免宽雾在中段出现空档。
+           */
+          const halfW =
+            mist.geometry.parameters.width / 2;
+
+          if (mist.position.x > 8 + halfW) {
+            mist.position.x = -8 - halfW;
+          }
+
+          mist.material.opacity =
+            mist.userData.opacity *
+            (1 +
+              Math.sin(t * 0.3 + i * 2.4) *
+                0.25);
+        }
+      );
+
+      butterflies.forEach(
+        (butterfly) => {
+          const u = butterfly.userData;
+
+          butterfly.position.set(
+            u.cx + Math.sin(t * u.speedA + u.phase) * u.rx,
+            u.cy + Math.sin(t * u.speedB) * u.ry,
+            0.5
+          );
+
+          /*
+           * scale.x 振荡模拟双翅开合。
+           */
+          butterfly.scale.x =
+            0.55 + 0.45 * Math.abs(Math.sin(t * 10));
+
+          butterfly.rotation.z =
+            Math.cos(t * u.speedB) * 0.25;
+        }
+      );
+
+      petals.forEach((petal) => {
+        const u = petal.userData;
+
+        petal.position.y -= u.speed * lastDt;
+
+        petal.position.x +=
+          Math.sin(t * 1.1 + u.phase) *
+          u.swayAmp * lastDt;
+
+        petal.rotation.z += u.rotSpeed * lastDt;
+
+        if (petal.position.y < -5.2) {
+          petal.position.y = 5.2;
+          petal.position.x = -7 + Math.random() * 14;
+        }
+      });
+    }
+
+    let lastDt = 0.016;
+
+    function setEffects(on) {
+      effectsOn = on;
+
+      dom.effectsButton.textContent = on
+        ? "动态 开"
+        : "动态 关";
+
+      invalidate();
+    }
+
+    dom.effectsButton.addEventListener(
+      "click",
+      () => {
+        setEffects(!effectsOn);
+      }
+    );
+
+    // =====================================================
+    // 动画循环（唯一的 rAF 循环）
+    // =====================================================
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+
+      let dirty = needsRender;
+
+      /*
+       * 镜头推进。
+       */
+      if (cameraAnim) {
+        const anim = cameraAnim;
+        const progress =
+          Math.max(
+            0,
+            Math.min(
+              (now - anim.start) /
+                anim.duration,
+              1
+            )
+          );
+
+        const eased =
+          easeInOutCubic(progress);
+
+        camera.position.x = lerp(
+          anim.sx,
+          anim.ex,
+          eased
+        );
+
+        camera.position.y = lerp(
+          anim.sy,
+          anim.ey,
+          eased
+        );
+
+        camera.zoom = lerp(
+          anim.sz,
+          anim.ez,
+          eased
+        );
+
+        camera.updateProjectionMatrix();
+
+        dirty = true;
+
+        if (progress >= 1) {
+          cameraAnim = null;
+          isMoving = false;
+
+          if (anim.callback) {
+            anim.callback();
+          }
+        }
+      }
+
+      /*
+       * 悬停检测节流：
+       * 每帧最多一次射线检测。
+       */
+      if (pointer.moved) {
+        pointer.moved = false;
+        processHover();
+      }
+
+      /*
+       * 动态氛围层：
+       * 开启时连续更新并渲染；
+       * 进入室内后自动暂停（室内为静态画面）。
+       */
+      const ambientActive =
+        effectsOn && !isInside;
+
+      if (ambientActive) {
+        lastDt = Math.min(
+          0.05,
+          ambientClock.getDelta()
+        );
+
+        ambientTime += lastDt;
+
+        ambientGroup.visible = true;
+
+        updateAmbient(ambientTime);
+
+        dirty = true;
+      } else {
+        ambientGroup.visible = false;
+      }
+
+      /*
+       * 渲染：氛围层开启时每帧绘制，
+       * 关闭时按需绘制。
+       */
+      if (dirty) {
+        needsRender = false;
+        renderer.render(
+          scene,
+          camera
+        );
+      }
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
